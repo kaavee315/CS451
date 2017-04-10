@@ -24,7 +24,12 @@ type Worker struct {
 // DoTask is called by the master when a new task is being scheduled on this
 // worker.
 func (wk *Worker) DoTask(arg *DoTaskArgs, _ *struct{}) error {
-	fmt.Printf("%s: given %v task #%d on file %s (nios: %d)\n",
+	file, err := os.OpenFile(wk.name +".log", os.O_RDWR|os.O_APPEND, 0660)
+	if err != nil {
+		file, err = os.Create(wk.name+".log")
+	}
+	defer file.Close()
+	fmt.Fprintf(file,"%s: given %v task #%d on file %s (nios: %d)\n",
 		wk.name, arg.Phase, arg.TaskNumber, arg.File, arg.NumOtherPhase)
 
 	switch arg.Phase {
@@ -34,7 +39,7 @@ func (wk *Worker) DoTask(arg *DoTaskArgs, _ *struct{}) error {
 		doReduce(arg.JobName, arg.TaskNumber, arg.NumOtherPhase, wk.Reduce)
 	}
 
-	fmt.Printf("%s: %v task #%d done\n", wk.name, arg.Phase, arg.TaskNumber)
+	fmt.Fprintf(file,"%s: %v task #%d done\n", wk.name, arg.Phase, arg.TaskNumber)
 	return nil
 }
 
@@ -55,8 +60,8 @@ func (wk *Worker) register(master string) {
 	args := new(RegisterArgs)
 	args.Worker = wk.name
 	ok := call(master, "Master.Register", args, new(struct{}))
-	if ok == false {
-		fmt.Printf("Register: RPC %s register error\n", master)
+	for ok == false {
+		ok = call(master, "Master.Register", args, new(struct{}))
 	}
 }
 

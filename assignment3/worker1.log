@@ -1,0 +1,7 @@
+worker1: given Map task #0 on file text_files/pg-being_ernest.txt (nios: 3)
+worker1: Map task #0 done
+worker1: given Map task #1 on file text_files/pg-dorian_gray.txt (nios: 3)
+worker1: Map task #1 done
+worker1: given Map task #2 on file text_files/pg-dracula.txt (nios: 3)
+worker1: Map task #2 done
+worker1: given Map task #3 on file text_files/pg-emma.txt (nios: 3)

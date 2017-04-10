@@ -27,19 +27,26 @@ func (mr *Master) schedule(phase jobPhase) {
 
 		// must save i to a local variable
 		taskIdx := i
+
+		// fmt.Printf("i is - ", i)
 		go func(){
 			ok := false
 			for !ok {
 				// get a free worker
 				worker := <-mr.registerChannel
 				// rpc call to finish job
-				args := DoTaskArgs{mr.jobName, mr.files[taskIdx], phase, taskIdx, nios}
+				// fmt.Printf("taskIdx - ", taskIdx)
+				fileName := ""
+				if phase == mapPhase{
+					fileName = mr.files[taskIdx]
+				} 
+				args := DoTaskArgs{mr.jobName, fileName, phase, taskIdx, nios}
 				ok = call(worker, "Worker.DoTask", &args, new(struct{}))
 				if !ok {
 					fmt.Printf("fail: %v %v tasks (%d I/Os)\n", taskIdx, phase, nios)
 				}else {
 					signals <- true
-					// return the free worke
+					// return the free worker
 					mr.registerChannel <- worker
 				}
 			}

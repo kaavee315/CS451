@@ -1,0 +1,9 @@
+time -
+
+3 reduces - 
+
+sequential - 11.693319924 sec
+2 workers - 7.492773902 sec
+3 workers - 5.411101878 sec
+4 workers - 4.98291564 sec
+5 workers - 4.788720623 sec

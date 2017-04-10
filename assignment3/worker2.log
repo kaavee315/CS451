@@ -1,0 +1,32 @@
+worker2: given Map task #15 on file text_files/pg-war_and_peace.txt (nios: 3)
+worker2: Map task #15 done
+worker2: given Map task #4 on file text_files/pg-frankenstein.txt (nios: 3)
+worker2: Map task #4 done
+worker2: given Map task #5 on file text_files/pg-great_expectations.txt (nios: 3)
+worker2: Map task #5 done
+worker2: given Map task #6 on file text_files/pg-grimm.txt (nios: 3)
+worker2: Map task #6 done
+worker2: given Map task #7 on file text_files/pg-huckleberry_finn.txt (nios: 3)
+worker2: Map task #7 done
+worker2: given Map task #8 on file text_files/pg-les_miserables.txt (nios: 3)
+worker2: Map task #8 done
+worker2: given Map task #9 on file text_files/pg-metamorphosis.txt (nios: 3)
+worker2: Map task #9 done
+worker2: given Map task #10 on file text_files/pg-moby_dick.txt (nios: 3)
+worker2: Map task #10 done
+worker2: given Map task #11 on file text_files/pg-sherlock_holmes.txt (nios: 3)
+worker2: Map task #11 done
+worker2: given Map task #12 on file text_files/pg-tale_of_two_cities.txt (nios: 3)
+worker2: Map task #12 done
+worker2: given Map task #13 on file text_files/pg-tom_sawyer.txt (nios: 3)
+worker2: Map task #13 done
+worker2: given Map task #14 on file text_files/pg-ulysses.txt (nios: 3)
+worker2: Map task #14 done
+worker2: given Map task #3 on file text_files/pg-emma.txt (nios: 3)
+worker2: Map task #3 done
+worker2: given Reduce task #2 on file  (nios: 16)
+worker2: Reduce task #2 done
+worker2: given Reduce task #0 on file  (nios: 16)
+worker2: Reduce task #0 done
+worker2: given Reduce task #1 on file  (nios: 16)
+worker2: Reduce task #1 done

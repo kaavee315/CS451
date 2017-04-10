@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
-	"CS451/assignment3/mapreduce"
+	"../mapreduce"
 	"os"
 	"strings"
 	"strconv"
+	"time"
+	"unicode"
 )
 
 // The mapping function is called once for each piece of the input.
@@ -14,7 +16,10 @@ import (
 // key/value pairs, each represented by a mapreduce.KeyValue.
 func mapF(document string, value string) (res []mapreduce.KeyValue) {
 	// TODO: you have to write this function
-	words_slice:=strings.Fields(value)
+	f := func(c rune) bool {
+		return !unicode.IsLetter(c) && !unicode.IsNumber(c)
+	}
+	words_slice:=strings.FieldsFunc(value,f)
 	for _,word:=range words_slice{
 		res=append(res,mapreduce.KeyValue{Key:strings.ToLower(word),Value:"1"})
 	}
@@ -36,6 +41,7 @@ func main() {
 	if len(os.Args) < 4 {
 		fmt.Printf("%s: see usage comments in file\n", os.Args[0])
 	} else if os.Args[1] == "master" {
+		start := time.Now()
 		var mr *mapreduce.Master
 		if os.Args[2] == "sequential" {
 			mr = mapreduce.Sequential("wcseq", os.Args[3:], 3, mapF, reduceF)
@@ -43,6 +49,7 @@ func main() {
 			mr = mapreduce.Distributed("wcseq", os.Args[3:], 3, os.Args[2])
 		}
 		mr.Wait()
+		fmt.Println("Time in Seconds",time.Since(start).Seconds(),"seconds")
 	} else {
 		mapreduce.RunWorker(os.Args[2], os.Args[3], mapF, reduceF, 100)
 	}

@@ -166,7 +166,7 @@ func main() {
     dictionary.InsertWord(word, nil)
     rpc.Register(dictionary)
     rpc.HandleHTTP()
-    l, e := net.Listen("tcp", ":6000")
+    l, e := net.Listen("tcp", ":6800")
     if e != nil {
         log.Fatal("listen error:", e)
     }
