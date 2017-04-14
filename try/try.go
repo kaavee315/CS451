@@ -21,6 +21,7 @@ func main() {
     //         fmt.Println("ip - ",ip)
     //     }
     // }
-    addrs,_ := net.InterfaceAddrs() 
+    addrs,_ := net.InterfaceAddrs()
+    fmt.Println(addrs) 
     fmt.Println(addrs[1].String())
 }
