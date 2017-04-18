@@ -14,7 +14,7 @@ import (
     "fmt"
     "errors"
     "hash/fnv"
-    // "time"
+    "time"
 )
 
 type Address struct{
@@ -89,11 +89,18 @@ func (t *KeySpace)Notify(addr Address, reply *Address) error{
     if (predecessor.Ip=="" || in_between(predecessor.to_string(),addr.to_string(),own_Address.to_string())) {
         predecessor = addr
     }
+    fmt.Println("predecessor changed to - ",predecessor.to_string())
+    if (successor.to_string()==own_Address.to_string()){
+        successor=addr
+    }
     return nil
 }
 
 func Stabilize() error{
-    conn, err := net.Dial("tcp", successor.Ip + ":" + successor.Port)
+    if successor.to_string() == own_Address.to_string() {
+		return nil
+	}
+	conn, err := net.Dial("tcp", successor.Ip + ":" + successor.Port)
     if err != nil {
         return err
     }
@@ -131,6 +138,7 @@ func (t *KeySpace)Insert(keyVal KeyVal, reply *string) error{
 
 func (t *KeySpace)callInsert(keyVal KeyVal, reply *string) error{
     if successor==own_Address {
+        fmt.Println("successor == ownaddress = ",successor.to_string())
         err := keySpace1.Insert(keyVal, reply)
         return err
     } else {
@@ -140,9 +148,11 @@ func (t *KeySpace)callInsert(keyVal KeyVal, reply *string) error{
             return err
         }
         if to_send==own_Address {
+            fmt.Println("to_send == ownaddress = ",successor.to_string())
             err := keySpace1.Insert(keyVal, reply)
             return err
         } else {
+            fmt.Println("to_send = ",successor.to_string())
             conn, err := net.Dial("tcp", to_send.Ip + ":" + to_send.Port)
             if err != nil {
                 return err
@@ -170,6 +180,7 @@ func (t *KeySpace)Remove(key string, reply *string) error{
 
 func (t *KeySpace)callRemove(key string, reply *string) error{
     if successor==own_Address {
+        fmt.Println("successor == ownaddress = ",successor.to_string())
         err := keySpace1.Remove(key,reply)
         return err
     } else {
@@ -179,9 +190,11 @@ func (t *KeySpace)callRemove(key string, reply *string) error{
             return err
         }
         if to_send==own_Address {
+            fmt.Println("to_send == ownaddress = ",successor.to_string())
             err := keySpace1.Remove(key,reply)
             return err
         } else {
+            fmt.Println("to_send = ",successor.to_string())
             conn, err := net.Dial("tcp", to_send.Ip + ":" + to_send.Port)
             if err != nil {
                 return err
@@ -208,6 +221,7 @@ func (t *KeySpace)Get(key string, val *string) error{
 
 func (t *KeySpace)callGet(key string, val *string) error{
     if successor==own_Address {
+        fmt.Println("successor == ownaddress = ",successor.to_string())
         err := keySpace1.Get(key,val)
         return err
     } else {
@@ -217,9 +231,11 @@ func (t *KeySpace)callGet(key string, val *string) error{
             return err
         }
         if to_send==own_Address {
+            fmt.Println("to_send == ownaddress = ",successor.to_string())
             err := keySpace1.Get(key,val)
             return err
         } else {
+            fmt.Println("to_send = ",successor.to_string())
             conn, err := net.Dial("tcp", to_send.Ip + ":" + to_send.Port)
             if err != nil {
                 return err
@@ -233,33 +249,6 @@ func (t *KeySpace)callGet(key string, val *string) error{
         }
     }
     return nil
-}
-
-
-
-
-func as_server_for_others() {
-    var l net.Listener
-    var e error
-    if os.Args[1]=="create" {
-        l, e = net.Listen("tcp", ":" + os.Args[2])
-    } else {
-        l, e = net.Listen("tcp", ":" + os.Args[3])
-    }
-    if e != nil {
-        log.Fatal("listen error:", e)
-    }
-    keySpace2 := new(KeySpace)
-    rpc.Register(keySpace2)
-    for {
-        conn, err := l.Accept()
-        if err != nil {
-          log.Printf("accept error: %s", conn)
-          continue
-        }
-        log.Printf("connection started: %v", conn.RemoteAddr())
-        go jsonrpc.ServeConn(conn)
-    }
 }
 
 func externalIP() (string, error) {
@@ -299,6 +288,35 @@ func externalIP() (string, error) {
     return "", errors.New("are you connected to the network?")
 }
 
+func as_server_for_others() {
+    var l net.Listener
+    var e error
+    if os.Args[1]=="create" {
+        l, e = net.Listen("tcp", ":" + os.Args[2])
+    } else {
+        l, e = net.Listen("tcp", ":" + os.Args[3])
+    }
+    if e != nil {
+        log.Fatal("listen error:", e)
+    }
+    keySpace2 := new(KeySpace)
+    rpc.Register(keySpace2)
+    for {
+        conn, err := l.Accept()
+        if err != nil {
+          log.Printf("accept error: %s", conn)
+          continue
+        }
+        log.Printf("connection started: %v", conn.RemoteAddr())
+        go jsonrpc.ServeConn(conn)
+    }
+}
+
+func callStabilize() {
+    for t := range time.NewTicker(200000 * time.Nanosecond).C {
+        Stabilize()
+    }
+}
 
 func main() {
     //./main create [portToListen]
@@ -313,8 +331,19 @@ func main() {
         client := jsonrpc.NewClient(conn)
         ip,err := externalIP()
         own_Address = Address{ip,os.Args[3]}
-        print(ip)
+        fmt.Println("address:- ",own_Address.to_string()," , Hash of address - ", hash(own_Address.to_string()))
         err = client.Call("KeySpace.FindSuccessor", own_Address.to_string(), &successor)
+        if err != nil {
+            log.Fatal("Successor not found error:", err)
+        }
+        fmt.Println("my successor - ",successor.to_string())
+        conn.Close()
+        conn, err = net.Dial("tcp", successor.Ip+":"+successor.Port)
+         if err != nil {
+            log.Fatal("Connectiong:", err)
+        }
+        client = jsonrpc.NewClient(conn)
+        err = client.Call("KeySpace.Notify", own_Address, nil)
         if err != nil {
             log.Fatal("Successor not found error:", err)
         }
@@ -324,8 +353,10 @@ func main() {
         ip,_ := externalIP()
         successor = Address{ip,os.Args[2]}
         own_Address = Address{ip,os.Args[2]}
+        fmt.Println("address:- ",own_Address.to_string()," , Hash of address - ", hash(own_Address.to_string()))
     }
     go as_server_for_others()
+    go callStabilize()
     fmt.Println("hihi")
 
     for true {
@@ -341,6 +372,7 @@ func main() {
             text, _ := reader.ReadString('\n')
             text = strings.TrimSpace(text)
             keyVal_obj.Key = text
+            fmt.Println("Hash of key - ",hash(text))
             fmt.Print("Enter Val:") 
             text, _ = reader.ReadString('\n')
             text = strings.TrimSpace(text)
@@ -357,7 +389,7 @@ func main() {
             text, _ := reader.ReadString('\n')
             text = strings.TrimSpace(text)
 
-            err := keySpace1.Remove(text, &string_return)
+            err := keySpace1.callRemove(text, &string_return)
             if err != nil {
                 fmt.Println("error:", err)
             } else {
@@ -368,7 +400,7 @@ func main() {
             fmt.Print("Enter key_string:")
             text, _ := reader.ReadString('\n')
             text = strings.TrimSpace(text)
-            err := keySpace1.Get(text, &string_return)
+            err := keySpace1.callGet(text, &string_return)
             if err != nil {
                 fmt.Println("error:", err)
             } else if string_return==""{
