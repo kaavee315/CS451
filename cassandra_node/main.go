@@ -18,17 +18,12 @@ import (
 )
 
 type Address struct{
-        Ip string
-        Port string
+        Ip, Port string
 }
 
-var (
-    successor Address = Address{"",""}
-    predecessor Address = Address{"",""}
-    own_Address = Address{"",""}
-    store map[string]string = make(map[string]string)
-    onlyOne bool
-)
+func (addr Address) to_string() string {
+    return addr.Ip + ":" + addr.Port
+}
 
 type KeyVal struct{
         Key string
@@ -43,14 +38,88 @@ func hash(s string) uint32 {
         return h.Sum32()
 }
 
-func (t *KeySpace)findSuccessor(string key, reply *Address) error{
-    if successor==own_Address {
-        store[keyVal.Key] = keyVal.Val
-        return nil
-    }
-    else {
+var (
+    successor Address = Address{"",""}
+    predecessor Address = Address{"",""}
+    own_Address = Address{"",""}
+    store map[string]string = make(map[string]string)
+    onlyOne bool
+    keySpace1 = new(KeySpace)
+)
 
+func in_between(a string, b string, c string) bool{
+    return (((hash(c)>hash(a)) && 
+            (hash(b)>hash(a)) && 
+            (hash(b)<=hash(c))) || 
+        ((hash(c)<hash(a)) && 
+            ((hash(b)>hash(a)) ||   
+                (hash(b)<=hash(c)))))
+}
+
+
+
+func (t *KeySpace)FindSuccessor(key string, reply *Address) error{
+    if successor==own_Address {
+        *reply = Address{successor.Ip,successor.Port}
+    } else {
+        if in_between(own_Address.to_string(),key,successor.to_string()) {
+            *reply = successor 
+        } else {
+            conn, err := net.Dial("tcp", successor.Ip + ":" + successor.Port)
+            if err != nil {
+                return err
+            }
+            client := jsonrpc.NewClient(conn)
+            err = client.Call("KeySpace.FindSuccessor", key, reply)
+            if err != nil {
+                return err
+            }
+            conn.Close()
+        }
     }
+    return nil
+}
+
+func (t *KeySpace)GetPredeccesor(nothing string, reply *Address) error{
+    *reply = predecessor
+    return nil
+}
+
+func (t *KeySpace)Notify(addr Address, reply *Address) error{
+    if (predecessor.Ip=="" || in_between(predecessor.to_string(),addr.to_string(),own_Address.to_string())) {
+        predecessor = addr
+    }
+    return nil
+}
+
+func Stabilize() error{
+    conn, err := net.Dial("tcp", successor.Ip + ":" + successor.Port)
+    if err != nil {
+        return err
+    }
+    client := jsonrpc.NewClient(conn)
+    var succ_pred Address
+    err = client.Call("KeySpace.GetPredeccesor", "", succ_pred)
+    if err != nil {
+        return err
+    }
+    conn.Close()
+    if(in_between(own_Address.to_string(),succ_pred.to_string(),successor.to_string())) {
+        successor = succ_pred
+    }
+
+    conn, err = net.Dial("tcp", successor.Ip + ":" + successor.Port)
+    if err != nil {
+        return err
+    }
+    client = jsonrpc.NewClient(conn)
+    var reply Address
+    err = client.Call("KeySpace.Notify", own_Address, reply)
+    if err != nil {
+        return err
+    }
+    conn.Close()
+    return nil
 }
 
 // func insertWord(string word, string meaning, stringList synonyms, Type type) error - The error returns either AlreadyExists or OtherServerSideError 
@@ -62,12 +131,31 @@ func (t *KeySpace)Insert(keyVal KeyVal, reply *string) error{
 
 func (t *KeySpace)callInsert(keyVal KeyVal, reply *string) error{
     if successor==own_Address {
-        store[keyVal.Key] = keyVal.Val
-        return nil
+        err := keySpace1.Insert(keyVal, reply)
+        return err
+    } else {
+        var to_send Address 
+        err := keySpace1.FindSuccessor(keyVal.Key, &to_send)
+        if err != nil {
+            return err
+        }
+        if to_send==own_Address {
+            err := keySpace1.Insert(keyVal, reply)
+            return err
+        } else {
+            conn, err := net.Dial("tcp", to_send.Ip + ":" + to_send.Port)
+            if err != nil {
+                return err
+            }
+            client := jsonrpc.NewClient(conn)
+            err = client.Call("KeySpace.Insert", keyVal, reply)
+            if err != nil {
+                return err
+            }
+            conn.Close()
+        }
     }
-    else {
-
-    }
+    return nil
 }
 
 // func removeWord(Word) error - The error contains either UnknownWord or OtherServerSideError.    Make this procedure take 5 seconds using sleep. RemoveWord should also remove this as the synonym from all other words that has this word as its synonym. 
@@ -81,11 +169,31 @@ func (t *KeySpace)Remove(key string, reply *string) error{
 }
 
 func (t *KeySpace)callRemove(key string, reply *string) error{
-    _, ok := store[key]
-    if !ok {
-        return errors.New("Key not found")
+    if successor==own_Address {
+        err := keySpace1.Remove(key,reply)
+        return err
+    } else {
+        var to_send Address 
+        err := keySpace1.FindSuccessor(key, &to_send)
+        if err != nil {
+            return err
+        }
+        if to_send==own_Address {
+            err := keySpace1.Remove(key,reply)
+            return err
+        } else {
+            conn, err := net.Dial("tcp", to_send.Ip + ":" + to_send.Port)
+            if err != nil {
+                return err
+            }
+            client := jsonrpc.NewClient(conn)
+            err = client.Call("KeySpace.Remove", key, reply)
+            if err != nil {
+                return err
+            }
+            conn.Close()
+        }
     }
-    delete(store, key)
     return nil
 }
 // func lookupWord(string, Word*) error - The error contains either UnknownWord or OtherServerSideError.
@@ -99,11 +207,31 @@ func (t *KeySpace)Get(key string, val *string) error{
 }
 
 func (t *KeySpace)callGet(key string, val *string) error{
-    v, ok := store[key]
-    if !ok {
-        return errors.New("Key not found")
+    if successor==own_Address {
+        err := keySpace1.Get(key,val)
+        return err
+    } else {
+        var to_send Address 
+        err := keySpace1.FindSuccessor(key, &to_send)
+        if err != nil {
+            return err
+        }
+        if to_send==own_Address {
+            err := keySpace1.Get(key,val)
+            return err
+        } else {
+            conn, err := net.Dial("tcp", to_send.Ip + ":" + to_send.Port)
+            if err != nil {
+                return err
+            }
+            client := jsonrpc.NewClient(conn)
+            err = client.Call("KeySpace.Get", key, val)
+            if err != nil {
+                return err
+            }
+            conn.Close()
+        }
     }
-    *val = v
     return nil
 }
 
@@ -121,6 +249,8 @@ func as_server_for_others() {
     if e != nil {
         log.Fatal("listen error:", e)
     }
+    keySpace2 := new(KeySpace)
+    rpc.Register(keySpace2)
     for {
         conn, err := l.Accept()
         if err != nil {
@@ -132,11 +262,47 @@ func as_server_for_others() {
     }
 }
 
+func externalIP() (string, error) {
+    ifaces, err := net.Interfaces()
+    if err != nil {
+        return "", err
+    }
+    for _, iface := range ifaces {
+        if iface.Flags&net.FlagUp == 0 {
+            continue // interface down
+        }
+        if iface.Flags&net.FlagLoopback != 0 {
+            continue // loopback interface
+        }
+        addrs, err := iface.Addrs()
+        if err != nil {
+            return "", err
+        }
+        for _, addr := range addrs {
+            var ip net.IP
+            switch v := addr.(type) {
+            case *net.IPNet:
+                ip = v.IP
+            case *net.IPAddr:
+                ip = v.IP
+            }
+            if ip == nil || ip.IsLoopback() {
+                continue
+            }
+            ip = ip.To4()
+            if ip == nil {
+                continue // not an ipv4 address
+            }
+            return ip.String(), nil
+        }
+    }
+    return "", errors.New("are you connected to the network?")
+}
+
 
 func main() {
     //./main create [portToListen]
     // ./main [ip_someNode] [port_someNode] [portToListen]
-    keySpace1 := new(KeySpace)
     rpc.Register(keySpace1)
 
     if os.Args[1]!="create" {
@@ -145,17 +311,19 @@ func main() {
             log.Fatal("Connectiong:", err)
         }
         client := jsonrpc.NewClient(conn)
-
-        err = client.Call("keySpace1.findSuccessor", nil, nil)
+        ip,err := externalIP()
+        own_Address = Address{ip,os.Args[3]}
+        print(ip)
+        err = client.Call("KeySpace.FindSuccessor", own_Address.to_string(), &successor)
         if err != nil {
-            fmt.Println("error:", err)
-        } else {
-            fmt.Println("Word Removed")
+            log.Fatal("Successor not found error:", err)
         }
+        conn.Close()
+
     } else { 
-        addrs,_ := net.InterfaceAddrs()
-        successor = Address{addrs[1].String(),os.Args[2]}
-        own_Address = Address{addrs[1].String(),os.Args[2]}
+        ip,_ := externalIP()
+        successor = Address{ip,os.Args[2]}
+        own_Address = Address{ip,os.Args[2]}
     }
     go as_server_for_others()
     fmt.Println("hihi")
@@ -178,7 +346,7 @@ func main() {
             text = strings.TrimSpace(text)
             keyVal_obj.Val = text
             fmt.Println(keyVal_obj)
-            err := keySpace1.Insert(keyVal_obj, &string_return)
+            err := keySpace1.callInsert(keyVal_obj, &string_return)
             if err != nil {
                 fmt.Println("error:", err)
             } else {
