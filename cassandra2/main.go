@@ -25,7 +25,7 @@ var (
     store map[string]string = make(map[string]string)
     onlyOne bool
     keySpace1 = new(KeySpace)
-    succ_succ Address = Address("","")
+    succ_succ Address = Address{"",""}
 )
 
 func (t *KeySpace)callInsert(keyVal KeyVal, reply *string) error{
