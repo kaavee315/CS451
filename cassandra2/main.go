@@ -31,7 +31,9 @@ var (
 func (t *KeySpace)callInsert(keyVal KeyVal, reply *string) error{
     if successor==own_Address {
         fmt.Println("successor == ownaddress = ",successor.to_string())
-        err := keySpace1.Insert(keyVal, reply)
+        var reply_str string
+        err := keySpace1.Insert(keyVal, &reply_str)
+        *reply = reply_str
         return err
     } else {
         var to_send Address 
@@ -41,17 +43,21 @@ func (t *KeySpace)callInsert(keyVal KeyVal, reply *string) error{
             return err
         }
         if to_send==own_Address {
-            fmt.Println("to_send == ownaddress = ",successor.to_string())
-            err := keySpace1.Insert(keyVal, reply)
+            fmt.Println("to_send == ownaddress = ",own_Address.to_string())
+            var reply_str string
+            err := keySpace1.Insert(keyVal, &reply_str)
+            *reply = reply_str
             return err
         } else {
-            fmt.Println("to_send = ",successor.to_string())
+            fmt.Println("to_send = ",to_send.to_string())
             conn, err := net.Dial("tcp", to_send.Ip + ":" + to_send.Port)
             if err != nil {
                 return err
             }
             client := jsonrpc.NewClient(conn)
-            err = client.Call("KeySpace.Insert", keyVal, reply)
+            var reply_str string
+            err = client.Call("KeySpace.Insert", keyVal, &reply_str)
+            *reply = reply_str
             if err != nil {
                 return err
             }
@@ -73,11 +79,11 @@ func (t *KeySpace)callRemove(key string, reply *string) error{
             return err
         }
         if to_send==own_Address {
-            fmt.Println("to_send == ownaddress = ",successor.to_string())
+            fmt.Println("to_send == ownaddress = ",to_send.to_string())
             err := keySpace1.Remove(key,reply)
             return err
         } else {
-            fmt.Println("to_send = ",successor.to_string())
+            fmt.Println("to_send = ",to_send.to_string())
             conn, err := net.Dial("tcp", to_send.Ip + ":" + to_send.Port)
             if err != nil {
                 return err
@@ -97,7 +103,9 @@ func (t *KeySpace)callRemove(key string, reply *string) error{
 func (t *KeySpace)callGet(key string, val *string) error{
     if successor==own_Address {
         fmt.Println("successor == ownaddress = ",successor.to_string())
-        err := keySpace1.Get(key,val)
+        var val_str string
+        err := keySpace1.Get(key,&val_str)
+        *val = val_str
         return err
     } else {
         var to_send Address 
@@ -106,17 +114,21 @@ func (t *KeySpace)callGet(key string, val *string) error{
             return err
         }
         if to_send==own_Address {
-            fmt.Println("to_send == ownaddress = ",successor.to_string())
-            err := keySpace1.Get(key,val)
+            fmt.Println("to_send == ownaddress = ",to_send.to_string())
+            var val_str string
+            err := keySpace1.Get(key,&val_str)
+            *val = val_str
             return err
         } else {
-            fmt.Println("to_send = ",successor.to_string())
+            fmt.Println("to_send = ",to_send.to_string())
             conn, err := net.Dial("tcp", to_send.Ip + ":" + to_send.Port)
             if err != nil {
                 return err
             }
             client := jsonrpc.NewClient(conn)
-            err = client.Call("KeySpace.Get", key, val)
+            var val_str string
+            err = client.Call("KeySpace.Get", key, &val_str)
+            *val = val_str
             if err != nil {
                 return err
             }
@@ -160,6 +172,10 @@ func main() {
         err = client.Call("KeySpace.Notify", own_Address, nil)
         if err != nil {
             log.Fatal("error while notifying:", err)
+        }
+        err = client.Call("KeySpace.Getkeyval", own_Address, &store)
+        if err != nil {
+            log.Fatal("error while getting keyval:", err)
         }
         err = client.Call("KeySpace.GetSuccessor", own_Address.to_string(), &succ_succ)
         if err != nil {

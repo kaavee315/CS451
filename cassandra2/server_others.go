@@ -40,7 +40,9 @@ func (t *KeySpace)FindSuccessor(key string, reply *Address) error{
                 return err
             }
             client := jsonrpc.NewClient(conn)
-            err = client.Call("KeySpace.FindSuccessor", key, reply)
+            var reply_obj Address
+            err = client.Call("KeySpace.FindSuccessor", key, &reply_obj)
+            *reply = reply_obj
             if err != nil {
                 fmt.Println("error in FindSuccessor 1", err)
                 return err
@@ -66,6 +68,18 @@ func (t *KeySpace)Notify(addr Address, reply *Address) error{
     return nil
 }
 
+func (t *KeySpace)Getkeyval(addr Address, reply *map[string]string) error{
+    reply_obj := make(map[string]string)
+    for key, value := range store{
+        if(hash(key) <= hash(addr.to_string())){
+            reply_obj[key]=value
+            delete(store, key)
+        }
+    }
+    *reply = reply_obj
+    return nil
+}
+
 func Stabilize() error{
     if successor.to_string() == own_Address.to_string() {
         return nil
@@ -80,7 +94,6 @@ func Stabilize() error{
             conn.Close()
         }
     }
-    
     conn, err := net.Dial("tcp", successor.Ip + ":" + successor.Port)
     if err != nil {
         successor=succ_succ
