@@ -17,13 +17,19 @@ import (
     // "time"
     )
 
+func (t *KeySpace)GetPredeccesor(nothing string, reply *Address) error{
+    *reply = predecessor
+    return nil
+}
+
+func (t *KeySpace)GetSuccessor(nothing string, reply *Address) error{
+    *reply = successor
+    return nil
+}
 
 func (t *KeySpace)FindSuccessor(key string, reply *Address) error{
-        // if key=="kaavee" {
-        //     fmt.Println("yes")
-        // }
     if successor.to_string()==own_Address.to_string() {
-        *reply = Address{successor.Ip,successor.Port}
+        *reply = successor
     } else {
         if in_between(own_Address.to_string(),key,successor.to_string()) {
             *reply = successor 
@@ -45,10 +51,6 @@ func (t *KeySpace)FindSuccessor(key string, reply *Address) error{
     return nil
 }
 
-func (t *KeySpace)GetPredeccesor(nothing string, reply *Address) error{
-    *reply = predecessor
-    return nil
-}
 
 func (t *KeySpace)Notify(addr Address, reply *Address) error{
     prev_predeccesor := predecessor
@@ -69,16 +71,33 @@ func Stabilize() error{
         return nil
     }
     prev_successor := successor
+    prev_succ_succ := succ_succ
+    if(predecessor.Ip!=""){
+        conn, err := net.Dial("tcp", predecessor.Ip + ":" + predecessor.Port)
+        if err != nil {
+            predecessor = Address{"",""}
+        } else {
+            conn.Close()
+        }
+    }
+    
     conn, err := net.Dial("tcp", successor.Ip + ":" + successor.Port)
     if err != nil {
+        successor=succ_succ
+        if successor.to_string() == own_Address.to_string() {
+            succ_succ=own_Address
+            return nil
+        }
+        conn, err = net.Dial("tcp", successor.Ip + ":" + successor.Port)
+        if err != nil {
         fmt.Println("err in Stabilize 0", err)
         return err
+        }
     }
     client := jsonrpc.NewClient(conn)
     var succ_pred Address
     err = client.Call("KeySpace.GetPredeccesor", "", &succ_pred)
     if err != nil {
-        conn.Close()
         fmt.Println("err in Stabilize 1", err)
         return err
     }
@@ -96,6 +115,15 @@ func Stabilize() error{
         client = jsonrpc.NewClient(conn)
     }
     var reply Address
+    err = client.Call("KeySpace.GetSuccessor", own_Address.to_string(), &succ_succ)
+    if err != nil {
+        log.Fatal("Succ_succ not found error:", err)
+    }
+    if(prev_succ_succ!=succ_succ){
+        fmt.Println("succ_succ changed to - ",succ_succ.to_string())
+    }
+    // fmt.Println("my succ_succ - ",succ_succ.to_string())
+
     // fmt.Println("calling notify to ",successor.to_string())
     err = client.Call("KeySpace.Notify", own_Address, &reply)
     if err != nil {

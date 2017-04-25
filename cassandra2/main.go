@@ -161,11 +161,17 @@ func main() {
         if err != nil {
             log.Fatal("error while notifying:", err)
         }
+        err = client.Call("KeySpace.GetSuccessor", own_Address.to_string(), &succ_succ)
+        if err != nil {
+            log.Fatal("Succ_succ not found error:", err)
+        }
+        fmt.Println("my succ_succ - ",succ_succ.to_string())
         conn.Close()
 
     } else { 
         ip,_ := externalIP()
         successor = Address{ip,os.Args[2]}
+        succ_succ = Address{ip,os.Args[2]}
         own_Address = Address{ip,os.Args[2]}
         fmt.Println("address:- ",own_Address.to_string()," , Hash of address - ", hash(own_Address.to_string()))
     }
@@ -225,6 +231,7 @@ func main() {
             fmt.Println("My own_Address = ",own_Address.to_string(),"Hash = ",hash(own_Address.to_string()))
             fmt.Println("My successor = ",successor.to_string(),"Hash = ",hash(successor.to_string()))
             fmt.Println("My predecessor = ",predecessor.to_string(),"Hash = ",hash(predecessor.to_string()))
+            fmt.Println("My succ_succ = ",succ_succ.to_string(),"Hash = ",hash(succ_succ.to_string()))
         } else if text=="Print_dict" {
             fmt.Println("store")
             for key, value := range store {

@@ -54,8 +54,8 @@
 		{
 			"contents": "package main\n\nimport (\n    // \"bufio\"\n    \"log\"\n    // \"strings\"\n    // \"runtime\"\n    // \"sync\"\n    \"net\"\n    \"net/rpc\"\n    \"net/rpc/jsonrpc\"\n    // \"net/http\"\n    \"os\"\n    \"fmt\"\n    \"errors\"\n    \"hash/fnv\"\n    // \"time\"\n)\n\nvar (\n    successor_ip string = \"\"\n    successor_port string = \"\"\n    predecessor_ip string = \"\"\n    predecessor_port string = \"\"\n    store map[string]string = make(map[string]string)\n)\n\ntype KeyVal struct{\n        Key string\n        Val string\n}\n\ntype AddrPort struct{\n        KeySpace string\n        Val string\n}\n\ntype KeySpace int\n\nfunc hash(s string) uint32 {\n        h := fnv.New32a()\n        h.Write([]byte(s))\n        return h.Sum32()\n}\n\n\n\n\nfunc (t *KeySpace)findSuccessor()\n\n\n// func insertWord(string word, string meaning, stringList synonyms, Type type) error - The error returns either AlreadyExists or OtherServerSideError \nfunc (t *KeySpace)Insert(keyVal KeyVal, reply *Word) error{\n    store[keyVal.key] = keyVal.val\n    return nil\n}\n\n// func removeWord(Word) error - The error contains either UnknownWord or OtherServerSideError.    Make this procedure take 5 seconds using sleep. RemoveWord should also remove this as the synonym from all other words that has this word as its synonym. \nfunc (t *KeySpace)Remove(key string, reply *string) error{\n    _, ok := store[key]\n    if !ok {\n        return errors.New(\"Key not found\")\n    }\n    delete(store, key)\n    return nil\n}\n\n// func lookupWord(string, Word*) error - The error contains either UnknownWord or OtherServerSideError.\nfunc (t *KeySpace)Get(key string, val *string) error{\n    v, ok := store[key]\n    if !ok {\n        return errors.New(\"Key not found\")\n    }\n    *val = v\n    return nil\n}\n\nfunc findSuccessor\n\n\nfunc as_server_for_others() {\n    var l net.Listener\n    var e error\n    if os.Args[1]==\"create\" {\n        l, e = net.Listen(\"tcp\", \":\" + os.Args[2])\n    } else {\n        l, e = net.Listen(\"tcp\", \":\" + os.Args[3])\n    }\n    if e != nil {\n        log.Fatal(\"listen error:\", e)\n    }\n    for {\n        conn, err := l.Accept()\n        if err != nil {\n          log.Printf(\"accept error: %s\", conn)\n          continue\n        }\n        log.Printf(\"connection started: %v\", conn.RemoteAddr())\n        go jsonrpc.ServeConn(conn)\n    }\n}\n\n\nfunc main() {\n    keySpace1 := new(KeySpace)\n    rpc.Register(keySpace1)\n\n    if os.Args[1]!=\"create\" {\n        conn, err := net.Dial(\"tcp\", os.Args[1]+\":\"+os.Args[2])\n        if err != nil {\n            log.Fatal(\"Connectiong:\", err)\n        }\n        client := jsonrpc.NewClient(conn)\n        err = client.Call(\"keySpace1.findSuccessor\", nil, nil)\n        if err != nil {\n            fmt.Println(\"error:\", err)\n        } else {\n            fmt.Println(\"Word Removed\")\n        }\n    }\n    go as_server_for_others()\n    fmt.Println(\"hihi\")\n}\n",
 			"file": "cassandra_node/main.go",
-			"file_size": 2714,
-			"file_write_time": 131350332212127930,
+			"file_size": 13004,
+			"file_write_time": 131372745559565465,
 			"settings":
 			{
 				"buffer_size": 2785,
@@ -66,7 +66,7 @@
 			"file": "try/try.go",
 			"settings":
 			{
-				"buffer_size": 601,
+				"buffer_size": 624,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -128,6 +128,7 @@
 	},
 	"file_history":
 	[
+		"/media/kaavee/Windows_partition/Users/Dell/Documents/codes/GO_code/src/CS451/CS451project.sublime-project",
 		"/media/kaavee/Windows_partition/Users/Dell/Dropbox/notesandbooks/8th_sem/CS152/minor5/testcases/question2/question2",
 		"/media/kaavee/Windows_partition/Users/Dell/Dropbox/notesandbooks/8th_sem/CS152/minor5/testcases/question4/question4_1.rkt",
 		"/media/kaavee/Windows_partition/Users/Dell/Dropbox/notesandbooks/8th_sem/CS152/minor5/testcases/question4/question4_2.rkt",
@@ -271,15 +272,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 601,
+						"buffer_size": 624,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								597,
-								597
+								0,
+								0
 							]
 						],
 						"settings":
