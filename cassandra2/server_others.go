@@ -59,8 +59,28 @@ func (t *KeySpace)Notify(addr Address, reply *Address) error{
     if (predecessor.Ip=="" || in_between(predecessor.to_string(),addr.to_string(),own_Address.to_string())) {
         predecessor = addr
     }
-    if prev_predeccesor!=predecessor {
+    if prev_predeccesor.to_string()!=predecessor.to_string() {
         fmt.Println("predecessor changed to - ",predecessor.to_string())
+        if ((!in_between(prev_predeccesor.to_string(),predecessor.to_string(),own_Address.to_string()))){
+            for key, value := range store_pred{
+                store[key]=value
+                delete(store_pred, key)
+            }
+        }
+        if(predecessor.Ip!=""){
+            fmt.Println("pred string - ",predecessor.to_string())
+            conn, err := net.Dial("tcp", predecessor.Ip+":"+predecessor.Port)
+            if err != nil {
+                log.Fatal("Connectiong in notify:", err)
+            }
+            client := jsonrpc.NewClient(conn)
+            err = client.Call("KeySpace.GetStore", "", &store_pred)
+            if err != nil {
+                log.Fatal("error while getting keyval:", err)
+            }
+            conn.Close()
+        }
+
     } 
     if (successor.to_string()==own_Address.to_string()){
         successor=addr
@@ -79,6 +99,17 @@ func (t *KeySpace)Getkeyval(addr Address, reply *map[string]string) error{
     *reply = reply_obj
     return nil
 }
+
+func (t *KeySpace)GetStore(nothing string, reply *map[string]string) error{
+    // fmt.Println("yoyo")
+    reply_obj := make(map[string]string)
+    for key, value := range store{
+        reply_obj[key]=value
+    }
+    *reply = reply_obj
+    return nil
+}
+
 
 func Stabilize() error{
     if successor.to_string() == own_Address.to_string() {

@@ -23,12 +23,13 @@ var (
     predecessor Address = Address{"",""}
     own_Address = Address{"",""}
     store map[string]string = make(map[string]string)
+    store_pred map[string]string = make(map[string]string)
     onlyOne bool
     keySpace1 = new(KeySpace)
     succ_succ Address = Address{"",""}
 )
 
-func (t *KeySpace)callInsert(keyVal KeyVal, reply *string) error{
+func (t *KeySpace)CallInsert(keyVal KeyVal, reply *string) error{
     if successor==own_Address {
         fmt.Println("successor == ownaddress = ",successor.to_string())
         var reply_str string
@@ -67,7 +68,7 @@ func (t *KeySpace)callInsert(keyVal KeyVal, reply *string) error{
     return nil
 }
 
-func (t *KeySpace)callRemove(key string, reply *string) error{
+func (t *KeySpace)CallRemove(key string, reply *string) error{
     if successor==own_Address {
         fmt.Println("successor == ownaddress = ",successor.to_string())
         err := keySpace1.Remove(key,reply)
@@ -100,7 +101,7 @@ func (t *KeySpace)callRemove(key string, reply *string) error{
 }
 
 
-func (t *KeySpace)callGet(key string, val *string) error{
+func (t *KeySpace)CallGet(key string, val *string) error{
     if successor==own_Address {
         fmt.Println("successor == ownaddress = ",successor.to_string())
         var val_str string
@@ -148,6 +149,7 @@ func main() {
     //./main create [portToListen]
     // ./main [ip_someNode] [port_someNode] [portToListen]
     rpc.Register(keySpace1)
+    go as_server_for_others()
 
     if os.Args[1]!="create" {
         conn, err := net.Dial("tcp", os.Args[1]+":"+os.Args[2])
@@ -191,7 +193,6 @@ func main() {
         own_Address = Address{ip,os.Args[2]}
         fmt.Println("address:- ",own_Address.to_string()," , Hash of address - ", hash(own_Address.to_string()))
     }
-    go as_server_for_others()
     go callStabilize()
 
     for true {
@@ -213,7 +214,7 @@ func main() {
             text = strings.TrimSpace(text)
             keyVal_obj.Val = text
             fmt.Println(keyVal_obj)
-            err := keySpace1.callInsert(keyVal_obj, &string_return)
+            err := keySpace1.CallInsert(keyVal_obj, &string_return)
             if err != nil {
                 fmt.Println("error:", err)
             } else {
@@ -224,7 +225,7 @@ func main() {
             text, _ := reader.ReadString('\n')
             text = strings.TrimSpace(text)
 
-            err := keySpace1.callRemove(text, &string_return)
+            err := keySpace1.CallRemove(text, &string_return)
             if err != nil {
                 fmt.Println("error:", err)
             } else {
@@ -235,7 +236,7 @@ func main() {
             fmt.Print("Enter key_string:")
             text, _ := reader.ReadString('\n')
             text = strings.TrimSpace(text)
-            err := keySpace1.callGet(text, &string_return)
+            err := keySpace1.CallGet(text, &string_return)
             if err != nil {
                 fmt.Println("error:", err)
             } else if string_return==""{
@@ -251,6 +252,11 @@ func main() {
         } else if text=="Print_dict" {
             fmt.Println("store")
             for key, value := range store {
+                fmt.Println("Key:", key, "Value:", value)
+            }
+        } else if text=="Print_dictpred" {
+            fmt.Println("store_pred")
+            for key, value := range store_pred {
                 fmt.Println("Key:", key, "Value:", value)
             }
         }

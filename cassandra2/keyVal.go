@@ -6,9 +6,9 @@ import (
     // "strings"
     // "runtime"
     // "sync"
-    // "net"
+    "net"
     // "net/rpc"
-    // "net/rpc/jsonrpc"
+    "net/rpc/jsonrpc"
     // "net/http"
     // "os"
     // "fmt"
@@ -28,6 +28,25 @@ type KeySpace int
 
 func (t *KeySpace)Insert(keyVal KeyVal, reply *string) error{
     store[keyVal.Key] = keyVal.Val
+    if(successor.Ip!=""){
+        conn, err := net.Dial("tcp", successor.Ip + ":" + successor.Port)
+        if err != nil {
+            return err
+        }
+        client := jsonrpc.NewClient(conn)
+        var reply_str string
+        err = client.Call("KeySpace.Insert_pred", keyVal, &reply_str)
+        *reply = reply_str
+        if err != nil {
+            return err
+        }
+        conn.Close() 
+    }
+    return nil
+}
+
+func (t *KeySpace)Insert_pred(keyVal KeyVal, reply *string) error{
+    store_pred[keyVal.Key] = keyVal.Val
     return nil
 }
 
@@ -38,6 +57,29 @@ func (t *KeySpace)Remove(key string, reply *string) error{
         return errors.New("Key not found")
     }
     delete(store, key)
+    return nil
+}
+
+func (t *KeySpace)Remove_pred(key string, reply *string) error{
+    _, ok := store_pred[key]
+    if !ok {
+        return errors.New("Key not found")
+    }
+    delete(store_pred, key)
+    if(successor.Ip!=""){
+        conn, err := net.Dial("tcp", successor.Ip + ":" + successor.Port)
+        if err != nil {
+            return err
+        }
+        client := jsonrpc.NewClient(conn)
+        var reply_str string
+        err = client.Call("KeySpace.Remove_pred", key, &reply_str)
+        *reply = reply_str
+        if err != nil {
+            return err
+        }
+        conn.Close() 
+    }
     return nil
 }
 
